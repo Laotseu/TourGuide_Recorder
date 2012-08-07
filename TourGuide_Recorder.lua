@@ -9,6 +9,13 @@ local qids = setmetatable({}, {
 		return v
 	end,
 })
+local itemids = setmetatable({}, {
+	__index = function(t,k)
+		local v = tonumber(k:match("item:(%d+)"))
+		t[k] = v
+		return v
+	end,
+})
 
 
 local function Debug(msg) ChatFrame6:AddMessage(tostring(msg)) end
@@ -44,7 +51,7 @@ end
 
 local function SaveCoords()
 	local x, y = GetPlayerMapPosition("player")
-	Save(string.format(" |Z|%s| |M|%.1f, %.1f|; %s", GetZoneText(), x * 100, y * 100, GetSubZoneText()))
+	Save(string.format(" |M|%.1f, %.1f| |Z|%s|; %s", x * 100, y * 100, GetZoneText(), GetSubZoneText()))
 end
 
 function f:PLAYER_LEVEL_UP(event, level)
@@ -145,7 +152,7 @@ hooksecurefunc("UseContainerItem", function(bag, slot, ...)
 	local link = GetContainerItemLink(bag, slot)
 	if link and not used[link] and (IsUsableItem(link) or IsConsumableItem(link)) then
 		used[link] = true
-		Save("\n; |U|".. link .. "|")
+		Save(("\n; |U|%s| |N|%s|"):format(itemids[link], link))
 		SaveCoords()
 	end
 end)
