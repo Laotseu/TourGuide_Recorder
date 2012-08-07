@@ -1,5 +1,6 @@
 
 local myname, ns = ...
+local function err(msg,...) geterrorhandler()(msg:format(tostringall(...)) .. " - " .. time()) end
 
 local accepted, currentcompletes, oldcompletes, currentquests, oldquests, currentboards, oldboards, titles, firstscan, abandoning, db = {}, {}, {}, {}, {}, {}, {}, {}, true
 
@@ -42,6 +43,7 @@ function f:ADDON_LOADED(event, addon)
 	self:RegisterEvent("QUEST_LOG_UPDATE")
 	self:RegisterEvent("PLAYER_LEVEL_UP")
 	self:RegisterEvent("QUEST_AUTOCOMPLETE")
+	self:RegisterEvent("CHAT_MSG_SYSTEM")
 end
 
 
@@ -105,7 +107,7 @@ function f:QUEST_LOG_UPDATE()
 	end
 
 	for qidboard,text in pairs(currentboards) do
-		qid = tonumber(qidboard:match("(%d+)[.]"))
+		local qid = tonumber(qidboard:match("(%d+)[.]"))
 		if not oldboards[qidboard] and accepted[qid] then
 			Save(string.format("\nC %s |QID|%s| |QO|%s|", titles[qid], qid, text))
 			SaveCoords()
@@ -147,6 +149,29 @@ function f:QUEST_LOG_UPDATE()
 			Save(string.format("\nA %s |QID|%s|%s", titles[qid], qid, note))
 			SaveCoords()
 			return
+		end
+	end
+end
+
+-- Auto-Complete: Set hearth and quests that complete without any effect on the quest log --
+local HOME_MSG = '^' .. ERR_DEATHBIND_SUCCESS_S:format('(.*)') .. '$' -- Build localized: "^(.*) is now your home.$"
+local QUEST_MSG = '^' .. ERR_QUEST_COMPLETE_S:format('(.+)') .. '$'   -- Build localized: "^(.+) completed.$"
+function f:CHAT_MSG_SYSTEM(event, msg, ...)
+	local quest = msg:match(QUEST_MSG)
+	if quest then
+		local qid = GetQuestID()
+		if qid and titles[qid] then
+			Save(string.format("\nA %s |QID|%s| |N|Auto-accept|", titles[qid], qid))
+			SaveCoords()
+		end
+	else
+		local loc = msg:match(HOME_MSG)
+		if loc then
+			-- The user has set his Hearth to a new location
+			local note = UnitName("target") and (" |N|Talk to %s|"):format(UnitName("target")) or ""
+			Save(string.format("\nh %s%s", loc, note))
+			SaveCoords()
+			WoWProCharDB.Guide.hearth = loc
 		end
 	end
 end
