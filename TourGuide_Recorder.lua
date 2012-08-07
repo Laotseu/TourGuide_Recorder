@@ -37,13 +37,14 @@ function f:ADDON_LOADED(event, addon)
 
 	TourGuide_RecorderDB = TourGuide_RecorderDB or ""
 
-	self:UnregisterEvent("ADDON_LOADED")
-	self.ADDON_LOADED = nil
-
 	self:RegisterEvent("QUEST_LOG_UPDATE")
 	self:RegisterEvent("PLAYER_LEVEL_UP")
 	self:RegisterEvent("QUEST_AUTOCOMPLETE")
 	self:RegisterEvent("CHAT_MSG_SYSTEM")
+	self:RegisterEvent("TAXIMAP_OPENED")
+
+	self:UnregisterEvent("ADDON_LOADED")
+	self.ADDON_LOADED = nil
 end
 
 
@@ -161,7 +162,7 @@ function f:CHAT_MSG_SYSTEM(event, msg, ...)
 	if quest then
 		local qid = GetQuestID()
 		if qid and titles[qid] then
-			Save(string.format("\nA %s |QID|%s| |N|Auto-accept|", titles[qid], qid))
+			Save(("\nA %s |QID|%s| |N|Auto-accept|"):format(titles[qid], qid))
 			SaveCoords()
 		end
 	else
@@ -195,6 +196,45 @@ hooksecurefunc("UseContainerItem", function(bag, slot, ...)
 	end
 end)
 
+do -- Closure
+
+	local tf, THROTTLE_TIME, throt, is_on_taxi = CreateFrame("frame"), 0.1
+
+	tf:Hide()
+	tf:SetScript("OnShow", function(self)
+		is_on_taxi = nil
+		throt = THROTTLE_TIME
+	end)
+	tf:SetScript("OnUpdate", function(self, elapsed)
+		throt = throt - elapsed
+		if throt < 0 then
+			if not is_on_taxi and UnitOnTaxi("player") then
+				-- Player just got on the taxi
+				Save("\nN Took a taxi")
+				SaveCoords()
+
+				is_on_taxi = true
+			elseif is_on_taxi and not UnitOnTaxi("player") then
+				-- Player just got off the taxi
+				Save(("\nf %s |N|Fly to %s, %s|"):format(GetSubZoneText(), GetSubZoneText(), GetZoneText()))
+				SaveCoords()
+
+				tf:Hide()
+				return
+			end
+			throt = throt + THROTTLE_TIME
+		end
+	end)
+	tf:SetScript("OnHide", function(self)
+		is_on_taxi = nil
+	end)
+
+	function f:TAXIMAP_OPENED()
+		tf:Hide()
+		tf:Show()
+	end
+
+end -- Closure
 
 local panel = ns.tekPanelAuction(nil, "TourGuide Recorder log")
 
