@@ -2,6 +2,7 @@
 local myname, ns = ...
 
 local accepted, currentcompletes, oldcompletes, currentquests, oldquests, currentboards, oldboards, titles, firstscan, abandoning, db = {}, {}, {}, {}, {}, {}, {}, {}, true
+
 local qids = setmetatable({}, {
 	__index = function(t,i)
 		local v = tonumber(i:match("|Hquest:(%d+):"))
@@ -17,6 +18,11 @@ local itemids = setmetatable({}, {
 	end,
 })
 
+-- For debug
+--Eric = Eric or {}
+--Eric.qids, Eric.itemids = qids, itemids
+--Eric.accepted, Eric.currentcompletes, Eric.oldcompletes, Eric.currentquests, Eric.oldquests, Eric.currentboards, Eric.oldboards, Eric.titles
+--	= accepted, currentcompletes, oldcompletes, currentquests, oldquests, currentboards, oldboards, titles
 
 local function Debug(msg) ChatFrame6:AddMessage(tostring(msg)) end
 
@@ -97,8 +103,9 @@ function f:QUEST_LOG_UPDATE()
 	end
 
 	for qidboard,text in pairs(currentboards) do
-		if not oldboards[qidboard] and accepted[qidboard] then
-			Save(string.format("\nC %s |QID|%s| |QO|%s|", title[qidboard], qidboard, text))
+		qid = tonumber(qidboard:match("(%d+)[.]"))
+		if not oldboards[qidboard] and accepted[qid] then
+			Save(string.format("\nC %s |QID|%s| |QO|%s|", titles[qid], qid, text))
 			SaveCoords()
 		end
 	end
@@ -113,8 +120,11 @@ function f:QUEST_LOG_UPDATE()
 	for qid in pairs(oldquests) do
 		if not currentquests[qid] then
 			local action = abandoning and "Abandoned quest" or "Turned in quest"
-			if not abandoning then Save(string.format("\nT %s |QID|%s|", titles[qid], qid)) end
-			SaveCoords()
+			if not abandoning then
+				local note = UnitIsUnit("target", "npc") and (" |N|To %s|"):format(UnitName("target") or "nil") or ""
+				Save(string.format("\nT %s |QID|%s|%s", titles[qid], qid, note))
+				SaveCoords()
+			end
 			if lastautocomplete == qid then Save("\n; Field turnin") end
 			accepted[qid] = nil
 			abandoning = nil
@@ -131,7 +141,8 @@ function f:QUEST_LOG_UPDATE()
 					Save("\n; Auto quest:")
 				end
 			end
-			Save(string.format("\nA %s |QID|%s|", titles[qid], qid))
+			local note = UnitIsUnit("target", "npc") and (" |N|From %s|"):format(UnitName("target") or "nil") or ""
+			Save(string.format("\nA %s |QID|%s|%s", titles[qid], qid, note))
 			SaveCoords()
 			return
 		end
