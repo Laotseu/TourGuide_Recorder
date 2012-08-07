@@ -60,11 +60,11 @@ end
 
 local function SaveCoords()
 	local x, y = GetPlayerMapPosition("player")
-	Save(string.format(" |M|%.1f, %.1f| |Z|%s|; %s", x * 100, y * 100, GetZoneText(), GetSubZoneText()))
+	Save(string.format("M|%.1f, %.1f|Z|%s|; %s", x * 100, y * 100, GetZoneText(), GetSubZoneText()))
 end
 
 function f:PLAYER_LEVEL_UP(event, level)
-	Save("\n- Level up! ".. level)
+	Save("\n; Level up! ".. level)
 end
 
 local lastautocomplete
@@ -110,7 +110,7 @@ function f:QUEST_LOG_UPDATE()
 	for qidboard,text in pairs(currentboards) do
 		local qid = tonumber(qidboard:match("(%d+)[.]"))
 		if not oldboards[qidboard] and accepted[qid] then
-			Save(string.format("\nC %s |QID|%s| |QO|%s|", titles[qid], qid, text))
+			Save(string.format("\nC %s |QID|%s|QO|%s|", titles[qid], qid, text))
 			SaveCoords()
 		end
 	end
@@ -126,7 +126,7 @@ function f:QUEST_LOG_UPDATE()
 		if not currentquests[qid] then
 			local action = abandoning and "Abandoned quest" or "Turned in quest"
 			if not abandoning then
-				local note = UnitName("target") and (" |N|To %s|"):format(UnitName("target")) or ""
+				local note = UnitName("target") and ("N|To %s|"):format(UnitName("target")) or ""
 				Save(string.format("\nT %s |QID|%s|%s", titles[qid], qid, note))
 				SaveCoords()
 			end
@@ -146,7 +146,7 @@ function f:QUEST_LOG_UPDATE()
 					Save("\n; Auto quest:")
 				end
 			end
-			local note = UnitName("target") and (" |N|From %s|"):format(UnitName("target")) or ""
+			local note = UnitName("target") and ("N|From %s|"):format(UnitName("target")) or ""
 			Save(string.format("\nA %s |QID|%s|%s", titles[qid], qid, note))
 			SaveCoords()
 			return
@@ -162,15 +162,15 @@ function f:CHAT_MSG_SYSTEM(event, msg, ...)
 	if quest then
 		local qid = GetQuestID()
 		if qid and titles[qid] then
-			Save(("\nA %s |QID|%s| |N|Auto-accept|"):format(titles[qid], qid))
+			Save(("\nA %s |QID|%s|N|Auto-accept|"):format(titles[qid], qid))
 			SaveCoords()
 		end
 	else
 		local loc = msg:match(HOME_MSG)
 		if loc then
 			-- The user has set his Hearth to a new location
-			local note = UnitName("target") and (" |N|Talk to %s|"):format(UnitName("target")) or ""
-			Save(string.format("\nh %s%s", loc, note))
+			local note = UnitName("target") and ("N|Talk to %s|"):format(UnitName("target")) or ""
+			Save(string.format("\nh %s |%s", loc, note))
 			SaveCoords()
 			WoWProCharDB.Guide.hearth = loc
 		end
@@ -191,7 +191,7 @@ hooksecurefunc("UseContainerItem", function(bag, slot, ...)
 	local link = GetContainerItemLink(bag, slot)
 	if link and not used[link] and (IsUsableItem(link) or IsConsumableItem(link)) then
 		used[link] = true
-		Save(("\n; |U|%s| |N|%s|"):format(itemids[link], link))
+		Save(("\n; |U|%s|N|%s|"):format(itemids[link], link))
 		SaveCoords()
 	end
 end)
@@ -210,7 +210,7 @@ do -- Closure
 		if throt < 0 then
 			if not is_on_taxi and UnitOnTaxi("player") then
 				-- Player just got on the taxi
-				Save("\nN Took a taxi")
+				Save("\nN Took a taxi |")
 				SaveCoords()
 
 				is_on_taxi = true
@@ -242,7 +242,7 @@ SLASH_TGR1 = "/tgr"
 function SlashCmdList.TGR(msg)
 	if msg:trim() == "" then ShowUIPanel(panel)
 	else
-		Save("\n; Usernote: ".. (msg or "No note"))
+		Save("\n; Usernote: ".. (msg or "No note")..|)
 		SaveCoords()
 	end
 end
