@@ -87,10 +87,12 @@ function f:QUEST_LOG_UPDATE()
 			titles[qid] = title
 			currentcompletes[qid] = complete == 1 and title or nil
 
-			for j=1,GetNumQuestLeaderBoards(i) do
-				local text, objtype, finished = GetQuestLogLeaderBoard(j, i)
-				if finished then
-					currentboards[qid.."."..j] = text
+			if GetNumQuestLeaderBoards(i) > 1 then
+				for j=1,GetNumQuestLeaderBoards(i) do
+					local text, objtype, finished = GetQuestLogLeaderBoard(j, i)
+					if finished then
+						currentboards[qid.."."..j] = text
+					end
 				end
 			end
 		end
@@ -121,7 +123,7 @@ function f:QUEST_LOG_UPDATE()
 		if not currentquests[qid] then
 			local action = abandoning and "Abandoned quest" or "Turned in quest"
 			if not abandoning then
-				local note = UnitIsUnit("target", "npc") and (" |N|To %s|"):format(UnitName("target") or "nil") or ""
+				local note = UnitName("target") and (" |N|To %s|"):format(UnitName("target")) or ""
 				Save(string.format("\nT %s |QID|%s|%s", titles[qid], qid, note))
 				SaveCoords()
 			end
@@ -141,7 +143,7 @@ function f:QUEST_LOG_UPDATE()
 					Save("\n; Auto quest:")
 				end
 			end
-			local note = UnitIsUnit("target", "npc") and (" |N|From %s|"):format(UnitName("target") or "nil") or ""
+			local note = UnitName("target") and (" |N|From %s|"):format(UnitName("target")) or ""
 			Save(string.format("\nA %s |QID|%s|%s", titles[qid], qid, note))
 			SaveCoords()
 			return
