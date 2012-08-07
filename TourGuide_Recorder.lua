@@ -44,7 +44,7 @@ end
 
 local function SaveCoords()
 	local x, y = GetPlayerMapPosition("player")
-	Save(string.format("\n- %s, %s (%.2f, %.2f)", GetZoneText(), GetSubZoneText(), x * 100, y * 100))
+	Save(string.format(" |Z|%s| |M|%.1f, %.1f|; %s", GetZoneText(), x * 100, y * 100, GetSubZoneText()))
 end
 
 function f:PLAYER_LEVEL_UP(event, level)
@@ -91,7 +91,7 @@ function f:QUEST_LOG_UPDATE()
 
 	for qidboard,text in pairs(currentboards) do
 		if not oldboards[qidboard] and accepted[qidboard] then
-			Save(string.format("\n- |QID|%s| |QO|%s|", qidboard, text))
+			Save(string.format("\nC %s |QID|%s| |QO|%s|", title[qidboard], qidboard, text))
 			SaveCoords()
 		end
 	end
@@ -99,6 +99,7 @@ function f:QUEST_LOG_UPDATE()
 	for qidcomplete,title in pairs(currentcompletes) do
 		if not oldcompletes[qidcomplete] and accepted[qidcomplete] then
 			Save(string.format("\nC %s |QID|%s|", title, qidcomplete))
+			SaveCoords()
 		end
 	end
 
@@ -106,7 +107,8 @@ function f:QUEST_LOG_UPDATE()
 		if not currentquests[qid] then
 			local action = abandoning and "Abandoned quest" or "Turned in quest"
 			if not abandoning then Save(string.format("\nT %s |QID|%s|", titles[qid], qid)) end
-			if lastautocomplete == qid then Save("\n- Field turnin") end
+			SaveCoords()
+			if lastautocomplete == qid then Save("\n; Field turnin") end
 			accepted[qid] = nil
 			abandoning = nil
 			return
@@ -119,7 +121,7 @@ function f:QUEST_LOG_UPDATE()
 			for i=1,GetNumAutoQuestPopUps() do
 				local questID, popUpType = GetAutoQuestPopUp(i)
 				if questID == qid and popUpType == "OFFER" then
-					Save("\n- Auto quest:")
+					Save("\n; Auto quest:")
 				end
 			end
 			Save(string.format("\nA %s |QID|%s|", titles[qid], qid))
@@ -141,9 +143,9 @@ local used = {}
 hooksecurefunc("UseContainerItem", function(bag, slot, ...)
 	if MerchantFrame:IsVisible() then return end
 	local link = GetContainerItemLink(bag, slot)
-	if link and not used[link] then
+	if link and not used[link] and (IsUsableItem(link) or IsConsumableItem(link)) then
 		used[link] = true
-		Save("\n- U ".. link)
+		Save("\n; |U|".. link .. "|")
 		SaveCoords()
 	end
 end)
@@ -155,7 +157,7 @@ SLASH_TGR1 = "/tgr"
 function SlashCmdList.TGR(msg)
 	if msg:trim() == "" then ShowUIPanel(panel)
 	else
-		Save("\n- Usernote: ".. (msg or "No note"))
+		Save("\n; Usernote: ".. (msg or "No note"))
 		SaveCoords()
 	end
 end
