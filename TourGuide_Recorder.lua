@@ -1,8 +1,55 @@
-
 local myname, ns = ...
+
+local _G 								= getfenv(0)
+
+local geterrorhandler				= _G.geterrorhandler
+local hooksecurefunc					= _G.hooksecurefunc
+local pairs								= _G.pairs
+local setmetatable					= _G.setmetatable
+local time								= _G.time
+local tonumber							= _G.tonumber
+local tostring							= _G.tostring
+local tostringall						= _G.tostringall
+local min								= _G.min
+local max								= _G.max
+local floor								= _G.floor
+
+local AbandonQuest					= _G.AbandonQuest
+local CreateFrame						= _G.CreateFrame
+local GetAutoQuestPopUp				= _G.GetAutoQuestPopUp
+local GetContainerItemLink			= _G.GetContainerItemLink
+local GetNumAutoQuestPopUps		= _G.GetNumAutoQuestPopUps
+local GetNumQuestLeaderBoards		= _G.GetNumQuestLeaderBoards
+local GetNumQuestLogEntries		= _G.GetNumQuestLogEntries
+local GetPlayerMapPosition			= _G.GetPlayerMapPosition
+local GetQuestID						= _G.GetQuestID
+local GetQuestLink					= _G.GetQuestLink
+local GetQuestLogLeaderBoard		= _G.GetQuestLogLeaderBoard
+local GetQuestLogTitle				= _G.GetQuestLogTitle
+local GetSubZoneText					= _G.GetSubZoneText
+local GetZoneText						= _G.GetZoneText
+local HideUIPanel						= _G.HideUIPanel
+local IsConsumableItem				= _G.IsConsumableItem
+local IsUsableItem					= _G.IsUsableItem
+local ShowUIPanel						= _G.ShowUIPanel
+local SlashCmdList					= _G.SlashCmdList
+local StaticPopupDialogs			= _G.StaticPopupDialogs
+local StaticPopup_Show				= _G.StaticPopup_Show
+local UnitName							= _G.UnitName
+local UnitOnTaxi						= _G.UnitOnTaxi
+
+local ERR_DEATHBIND_SUCCESS_S		= _G.ERR_DEATHBIND_SUCCESS_S
+local ERR_QUEST_COMPLETE_S			= _G.ERR_QUEST_COMPLETE_S
+local GameFontDisable				= _G.GameFontDisable
+local GameFontHighlight				= _G.GameFontHighlight
+local GameFontHighlightSmall		= _G.GameFontHighlightSmall
+local GameFontNormal					= _G.GameFontNormal
+local MerchantFrame					= _G.MerchantFrame
+
 local function err(msg,...) geterrorhandler()(msg:format(tostringall(...)) .. " - " .. time()) end
 
 local accepted, currentcompletes, oldcompletes, currentquests, oldquests, currentboards, oldboards, titles, firstscan, abandoning, db = {}, {}, {}, {}, {}, {}, {}, {}, true
+local TourGuide_RecorderDB
 
 local qids = setmetatable({}, {
 	__index = function(t,i)
@@ -25,8 +72,6 @@ local itemids = setmetatable({}, {
 --Eric.accepted, Eric.currentcompletes, Eric.oldcompletes, Eric.currentquests, Eric.oldquests, Eric.currentboards, Eric.oldboards, Eric.titles
 --	= accepted, currentcompletes, oldcompletes, currentquests, oldquests, currentboards, oldboards, titles
 
-local function Debug(msg) ChatFrame6:AddMessage(tostring(msg)) end
-
 local f = CreateFrame("frame")
 f:SetScript("OnEvent", function(self, event, ...) if self[event] then return self[event](self, event, ...) end end)
 f:RegisterEvent("ADDON_LOADED")
@@ -35,7 +80,7 @@ f:RegisterEvent("ADDON_LOADED")
 function f:ADDON_LOADED(event, addon)
 	if addon ~= "TourGuide_Recorder" then return end
 
-	TourGuide_RecorderDB = TourGuide_RecorderDB or ""
+	_G.TourGuide_RecorderDB = _G.TourGuide_RecorderDB or ""
 
 	self:RegisterEvent("QUEST_LOG_UPDATE")
 	self:RegisterEvent("PLAYER_LEVEL_UP")
@@ -49,8 +94,7 @@ end
 
 
 local function Save(val)
-	TourGuide_RecorderDB = TourGuide_RecorderDB..val
-	Debug(val:gsub("|", "||"):gsub("\n", ""))
+	_G.TourGuide_RecorderDB = _G.TourGuide_RecorderDB..val
 end
 
 local function coords()
@@ -60,7 +104,7 @@ end
 
 local function SaveCoords()
 	local x, y = GetPlayerMapPosition("player")
-	Save(string.format("M|%.1f, %.1f|Z|%s|; %s", x * 100, y * 100, GetZoneText(), GetSubZoneText()))
+	Save(("M|%.1f, %.1f|Z|%s|; %s"):format(x * 100, y * 100, GetZoneText(), GetSubZoneText()))
 end
 
 function f:PLAYER_LEVEL_UP(event, level)
@@ -73,7 +117,6 @@ function f:QUEST_AUTOCOMPLETE(event, qid)
 end
 
 function f:QUEST_LOG_UPDATE()
---~ 	Debug("QUEST_LOG_UPDATE")
 	currentquests, oldquests = oldquests, currentquests
 	currentboards, oldboards = oldboards, currentboards
 	currentcompletes, oldcompletes = oldcompletes, currentcompletes
@@ -110,14 +153,14 @@ function f:QUEST_LOG_UPDATE()
 	for qidboard,text in pairs(currentboards) do
 		local qid = tonumber(qidboard:match("(%d+)[.]"))
 		if not oldboards[qidboard] and accepted[qid] then
-			Save(string.format("\nC %s |QID|%s|QO|%s|", titles[qid], qid, text))
+			Save(("\nC %s |QID|%s|QO|%s|"):format(titles[qid], qid, text))
 			SaveCoords()
 		end
 	end
 
 	for qidcomplete,title in pairs(currentcompletes) do
 		if not oldcompletes[qidcomplete] and accepted[qidcomplete] then
-			Save(string.format("\nC %s |QID|%s|", title, qidcomplete))
+			Save(("\nC %s |QID|%s|"):format(title, qidcomplete))
 			SaveCoords()
 		end
 	end
@@ -127,7 +170,7 @@ function f:QUEST_LOG_UPDATE()
 			local action = abandoning and "Abandoned quest" or "Turned in quest"
 			if not abandoning then
 				local note = UnitName("target") and ("N|To %s|"):format(UnitName("target")) or ""
-				Save(string.format("\nT %s |QID|%s|%s", titles[qid], qid, note))
+				Save(("\nT %s |QID|%s|%s"):format(titles[qid], qid, note))
 				SaveCoords()
 			end
 			if lastautocomplete == qid then Save("\n; Field turnin") end
@@ -147,7 +190,7 @@ function f:QUEST_LOG_UPDATE()
 				end
 			end
 			local note = UnitName("target") and ("N|From %s|"):format(UnitName("target")) or ""
-			Save(string.format("\nA %s |QID|%s|%s", titles[qid], qid, note))
+			Save(("\nA %s |QID|%s|%s"):format(titles[qid], qid, note))
 			SaveCoords()
 			return
 		end
@@ -170,9 +213,8 @@ function f:CHAT_MSG_SYSTEM(event, msg, ...)
 		if loc then
 			-- The user has set his Hearth to a new location
 			local note = UnitName("target") and ("N|Talk to %s|"):format(UnitName("target")) or ""
-			Save(string.format("\nh %s |%s", loc, note))
+			Save(("\nh %s |%s"):format(loc, note))
 			SaveCoords()
-			WoWProCharDB.Guide.hearth = loc
 		end
 	end
 end
@@ -238,11 +280,11 @@ end -- Closure
 
 local panel = ns.tekPanelAuction(nil, "TourGuide Recorder log")
 
-SLASH_TGR1 = "/tgr"
+_G.SLASH_TGR1 = "/tgr"
 function SlashCmdList.TGR(msg)
 	if msg:trim() == "" then ShowUIPanel(panel)
 	else
-		Save("\n; Usernote: ".. (msg or "No note")..|)
+		Save("\n; Usernote: " .. (msg or "No note") .. "|")
 		SaveCoords()
 	end
 end
@@ -280,7 +322,7 @@ editbox:SetScript("OnTextChanged", function(self, user) if user then SetEditbox(
 
 
 local function doscroll(v)
-	offset = math.max(math.min(v, 0), maxoffset)
+	offset = max(min(v, 0), maxoffset)
 	scroll:SetVerticalScroll(-offset)
 	editbox:SetPoint("TOP", 0, offset)
 end
@@ -289,9 +331,9 @@ editbox:SetScript("OnCursorChanged", function(self, x, y, width, height)
 	LINEHEIGHT = height
 	if offset < y then
 		doscroll(y)
-	elseif math.floor(offset - HEIGHT + height*2) > y then
+	elseif floor(offset - HEIGHT + height*2) > y then
 		local v = y + HEIGHT - height*2
-		maxoffset = math.min(maxoffset, v)
+		maxoffset = min(maxoffset, v)
 		doscroll(v)
 	end
 end)
