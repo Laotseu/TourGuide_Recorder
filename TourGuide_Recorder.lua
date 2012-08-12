@@ -143,7 +143,7 @@ function f:QUEST_LOG_UPDATE()
 		end
 	end
 
-	if firstscan then
+	if firstscan and next(currentquests) then
 	 	for qid in pairs(currentquests) do accepted[qid] = true end
 		firstscan = nil
 		return
@@ -203,7 +203,7 @@ function f:CHAT_MSG_SYSTEM(event, msg, ...)
 	local quest = msg:match(QUEST_MSG)
 	if quest then
 		local qid = GetQuestID()
-		if qid and titles[qid] then
+		if qid and not titles[qid] then
 			Save(("\nA %s |QID|%s|N|Auto-accept|"):format(titles[qid], qid))
 			SaveCoords()
 		end
