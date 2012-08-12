@@ -49,7 +49,6 @@ local MerchantFrame					= _G.MerchantFrame
 local function err(msg,...) geterrorhandler()(msg:format(tostringall(...)) .. " - " .. time()) end
 
 local accepted, currentcompletes, oldcompletes, currentquests, oldquests, currentboards, oldboards, titles, firstscan, abandoning, db = {}, {}, {}, {}, {}, {}, {}, {}, true
-local TourGuide_RecorderDB
 
 local qids = setmetatable({}, {
 	__index = function(t,i)
@@ -310,7 +309,7 @@ editbox:SetTextInsets(2,2,2,2)
 editbox:SetMultiLine(true)
 editbox:SetAutoFocus(false)
 local function SetEditbox()
-	editbox:SetText(TourGuide_RecorderDB:trim():gsub("|cff......|H(item:%d+):[%d:-]+|h([^|]+)|h|r", "%1 %2"):gsub("|", "||"))
+	editbox:SetText(_G.TourGuide_RecorderDB:trim():gsub("|cff......|H(item:%d+):[%d:-]+|h([^|]+)|h|r", "%1 %2"):gsub("|", "||"))
 	editbox:HighlightText()
 end
 editbox:SetScript("OnShow", function(self)
@@ -347,7 +346,7 @@ StaticPopupDialogs["TOURGUIDE_RECORDER_RESET"] = {
 	text = "Really erase TourGuide Recorder's log?",
 	button1 = "Yes",
 	button2 = "No",
-	OnAccept = function() TourGuide_RecorderDB = ""; SetEditbox() end,
+	OnAccept = function() _G.TourGuide_RecorderDB = ""; SetEditbox() end,
 	timeout = 0,
 	whileDead = true,
 	hideOnEscape = true,
