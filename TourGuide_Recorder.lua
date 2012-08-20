@@ -1,9 +1,10 @@
-local myname, ns = ...
+﻿local myname, ns = ...
 
 local _G 								= getfenv(0)
 
 local geterrorhandler				= _G.geterrorhandler
 local hooksecurefunc					= _G.hooksecurefunc
+local next								= _G.next
 local pairs								= _G.pairs
 local setmetatable					= _G.setmetatable
 local time								= _G.time
@@ -25,6 +26,7 @@ local GetPlayerMapPosition			= _G.GetPlayerMapPosition
 local GetQuestID						= _G.GetQuestID
 local GetQuestLink					= _G.GetQuestLink
 local GetQuestLogLeaderBoard		= _G.GetQuestLogLeaderBoard
+local GetQuestLogSpecialItemInfo	= _G.GetQuestLogSpecialItemInfo
 local GetQuestLogTitle				= _G.GetQuestLogTitle
 local GetSubZoneText					= _G.GetSubZoneText
 local GetZoneText						= _G.GetZoneText
@@ -103,7 +105,7 @@ end
 
 local function SaveCoords()
 	local x, y = GetPlayerMapPosition("player")
-	Save(("M|%.1f, %.1f|Z|%s|; %s"):format(x * 100, y * 100, GetZoneText(), GetSubZoneText()))
+	Save(("M|%.1f,%.1f|Z|%s|; %s"):format(x * 100, y * 100, GetZoneText(), GetSubZoneText()))
 end
 
 function f:PLAYER_LEVEL_UP(event, level)
@@ -233,6 +235,14 @@ hooksecurefunc("UseContainerItem", function(bag, slot, ...)
 	if link and not used[link] and (IsUsableItem(link) or IsConsumableItem(link)) then
 		used[link] = true
 		Save(("\n; |U|%s|N|%s|"):format(itemids[link], link))
+		SaveCoords()
+	end
+end)
+hooksecurefunc("UseQuestLogSpecialItem", function(questIndex)
+	local link, item = GetQuestLogSpecialItemInfo(questIndex)
+	if item then
+		used[link] = true
+		Save(("\n; |U|%s|N|%s|"):format(item, link))
 		SaveCoords()
 	end
 end)
