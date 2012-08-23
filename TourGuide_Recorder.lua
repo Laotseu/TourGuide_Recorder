@@ -103,9 +103,10 @@ local function coords()
 	return x * 100, y * 100
 end
 
-local function SaveCoords()
+local function SaveCoords(note)
 	local x, y = GetPlayerMapPosition("player")
-	Save(("M|%.1f,%.1f|Z|%s|; %s"):format(x * 100, y * 100, GetZoneText(), GetSubZoneText()))
+	note = note and ("N|%s|"):format(note) or ""
+	Save(("M|%.1f,%.1f|%sZ|%s|; %s"):format(x * 100, y * 100, GetZoneText(), note, GetSubZoneText()))
 end
 
 function f:PLAYER_LEVEL_UP(event, level)
@@ -170,9 +171,9 @@ function f:QUEST_LOG_UPDATE()
 		if not currentquests[qid] then
 			local action = abandoning and "Abandoned quest" or "Turned in quest"
 			if not abandoning then
-				local note = UnitName("target") and ("N|To %s|"):format(UnitName("target")) or ""
-				Save(("\nT %s |QID|%s|%s"):format(titles[qid], qid, note))
-				SaveCoords()
+				local note = UnitName("target") and ("To %s"):format(UnitName("target")) or nil
+				Save(("\nT %s |QID|%s|"):format(titles[qid], qid))
+				SaveCoords(note)
 			end
 			if lastautocomplete == qid then Save("\n; Field turnin") end
 			accepted[qid] = nil
@@ -190,9 +191,9 @@ function f:QUEST_LOG_UPDATE()
 					Save("\n; Auto quest:")
 				end
 			end
-			local note = UnitName("target") and ("N|From %s|"):format(UnitName("target")) or ""
-			Save(("\nA %s |QID|%s|%s"):format(titles[qid], qid, note))
-			SaveCoords()
+			local note = UnitName("target") and ("From %s"):format(UnitName("target")) or nil
+			Save(("\nA %s |QID|%s|"):format(titles[qid], qid))
+			SaveCoords(note)
 			return
 		end
 	end
@@ -206,16 +207,16 @@ function f:CHAT_MSG_SYSTEM(event, msg, ...)
 	if quest then
 		local qid = GetQuestID()
 		if qid and not titles[qid] then
-			Save(("\nA %s |QID|%s|N|Auto-accept|"):format(titles[qid], qid))
-			SaveCoords()
+			Save(("\nA %s |QID|%s|"):format(titles[qid], qid))
+			SaveCoords("Auto-accept")
 		end
 	else
 		local loc = msg:match(HOME_MSG)
 		if loc then
 			-- The user has set his Hearth to a new location
-			local note = UnitName("target") and ("N|Talk to %s|"):format(UnitName("target")) or ""
-			Save(("\nh %s |%s"):format(loc, note))
-			SaveCoords()
+			local note = UnitName("target") and ("Talk to %s"):format(UnitName("target")) or nil
+			Save(("\nh %s |"):format(loc))
+			SaveCoords(note)
 		end
 	end
 end
@@ -234,16 +235,16 @@ hooksecurefunc("UseContainerItem", function(bag, slot, ...)
 	local link = GetContainerItemLink(bag, slot)
 	if link and not used[link] and (IsUsableItem(link) or IsConsumableItem(link)) then
 		used[link] = true
-		Save(("\n; |U|%s|N|%s|"):format(itemids[link], link))
-		SaveCoords()
+		Save(("\n; |U|%s|"):format(itemids[link]))
+		SaveCoords(link)
 	end
 end)
 hooksecurefunc("UseQuestLogSpecialItem", function(questIndex)
-	local link, item = GetQuestLogSpecialItemInfo(questIndex)
-	if item then
+	local link = GetQuestLogSpecialItemInfo(questIndex)
+	if link then
 		used[link] = true
-		Save(("\n; |U|%s|N|%s|"):format(item, link))
-		SaveCoords()
+		Save(("\n; |U|%s|"):format(itemids[link]))
+		SaveCoords(link)
 	end
 end)
 
@@ -261,8 +262,9 @@ do -- Closure
 		if throt < 0 then
 			if not is_on_taxi and UnitOnTaxi("player") then
 				-- Player just got on the taxi
+				local note = UnitName("target") and ("Talk to %s"):format(UnitName("target")) or nil
 				Save("\nN Took a taxi |")
-				SaveCoords()
+				SaveCoords(note)
 
 				is_on_taxi = true
 			elseif is_on_taxi and not UnitOnTaxi("player") then
