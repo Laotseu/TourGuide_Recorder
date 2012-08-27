@@ -106,7 +106,7 @@ end
 local function SaveCoords(note)
 	local x, y = GetPlayerMapPosition("player")
 	note = note and ("N|%s|"):format(note) or ""
-	Save(("M|%.1f,%.1f|Z|%s|%s|; %s"):format(x * 100, y * 100, GetZoneText(), note, GetSubZoneText()))
+	Save(("M|%.1f,%.1f|Z|%s|%s; %s"):format(x * 100, y * 100, GetZoneText(), note, GetSubZoneText()))
 end
 
 function f:PLAYER_LEVEL_UP(event, level)
