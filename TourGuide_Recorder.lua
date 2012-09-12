@@ -1,4 +1,4 @@
-﻿local myname, ns = ...
+local myname, ns = ...
 
 local _G 								= getfenv(0)
 
@@ -88,6 +88,7 @@ function f:ADDON_LOADED(event, addon)
 	self:RegisterEvent("QUEST_AUTOCOMPLETE")
 	self:RegisterEvent("CHAT_MSG_SYSTEM")
 	self:RegisterEvent("TAXIMAP_OPENED")
+	self:RegisterEvent("UI_INFO_MESSAGE")
 
 	self:UnregisterEvent("ADDON_LOADED")
 	self.ADDON_LOADED = nil
@@ -221,6 +222,14 @@ function f:CHAT_MSG_SYSTEM(event, msg, ...)
 	end
 end
 
+-- Discovered new flight master
+function f:UI_INFO_MESSAGE(msg)
+	if msg == _G.ERR_NEWTAXIPATH then
+		local note = UnitName("target") and ("Talk to %s"):format(UnitName("target")) or nil
+		Save(("\nf %s |"):format(GetSubZoneText():trim()))
+		SaveCoords(note)
+	end
+end
 
 local orig = AbandonQuest
 function AbandonQuest(...)
@@ -269,7 +278,7 @@ do -- Closure
 				is_on_taxi = true
 			elseif is_on_taxi and not UnitOnTaxi("player") then
 				-- Player just got off the taxi
-				Save(("\nf %s |N|Fly to %s, %s|"):format(GetSubZoneText(), GetSubZoneText(), GetZoneText()))
+				Save(("\nF %s |N|Fly to %s, %s|"):format(GetSubZoneText(), GetSubZoneText(), GetZoneText()))
 				SaveCoords()
 
 				tf:Hide()
