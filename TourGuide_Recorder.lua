@@ -208,7 +208,7 @@ function f:CHAT_MSG_SYSTEM(event, msg, ...)
 	if quest then
 		local qid = GetQuestID()
 		if qid and not titles[qid] then
-			Save(("\nA %s |QID|%s|"):format(titles[qid], qid))
+			Save(("\nA %s |QID|%s|"):format(titles[qid] or quest, qid))
 			SaveCoords("Auto-accept")
 		end
 	else
@@ -223,8 +223,11 @@ function f:CHAT_MSG_SYSTEM(event, msg, ...)
 end
 
 -- Discovered new flight master
-function f:UI_INFO_MESSAGE(msg)
+local err_count = 1
+function f:UI_INFO_MESSAGE(event, msg)
+--if err_count <= 10 then  err("msg = %s",msg); err_count = err_count +1 end
 	if msg == _G.ERR_NEWTAXIPATH then
+		--err("msg = %s",msg)
 		local note = UnitName("target") and ("Talk to %s"):format(UnitName("target")) or nil
 		Save(("\nf %s |"):format(GetSubZoneText():trim()))
 		SaveCoords(note)
