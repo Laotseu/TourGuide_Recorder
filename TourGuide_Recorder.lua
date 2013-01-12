@@ -305,7 +305,10 @@ local panel = ns.tekPanelAuction(nil, "TourGuide Recorder log")
 
 _G.SLASH_TGR1 = "/tgr"
 function SlashCmdList.TGR(msg)
-	if msg:trim() == "" then ShowUIPanel(panel)
+	if msg:trim() == "" then 
+		ShowUIPanel(panel)
+	elseif msg:trim() == "clear" then
+		StaticPopup_Show("TOURGUIDE_RECORDER_RESET")
 	else
 		Save("\n; Usernote: " .. (msg or "No note") .. "|")
 		SaveCoords()
