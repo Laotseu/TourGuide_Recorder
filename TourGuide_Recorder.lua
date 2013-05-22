@@ -51,6 +51,7 @@ local MerchantFrame					= _G.MerchantFrame
 local function err(msg,...) geterrorhandler()(msg:format(tostringall(...)) .. " - " .. time()) end
 
 local accepted, currentcompletes, oldcompletes, currentquests, oldquests, currentboards, oldboards, titles, firstscan, abandoning, db = {}, {}, {}, {}, {}, {}, {}, {}, true
+local enable = nil
 
 local qids = setmetatable({}, {
 	__index = function(t,i)
@@ -77,18 +78,38 @@ local f = CreateFrame("frame")
 f:SetScript("OnEvent", function(self, event, ...) if self[event] then return self[event](self, event, ...) end end)
 f:RegisterEvent("ADDON_LOADED")
 
-
-function f:ADDON_LOADED(event, addon)
-	if addon ~= "TourGuide_Recorder" then return end
-
-	_G.TourGuide_RecorderDB = _G.TourGuide_RecorderDB or ""
-
+function f:EnableTG()
+	
 	self:RegisterEvent("QUEST_LOG_UPDATE")
 	self:RegisterEvent("PLAYER_LEVEL_UP")
 	self:RegisterEvent("QUEST_AUTOCOMPLETE")
 	self:RegisterEvent("CHAT_MSG_SYSTEM")
 	self:RegisterEvent("TAXIMAP_OPENED")
 	self:RegisterEvent("UI_INFO_MESSAGE")
+	
+	enable = true
+end
+
+function f:DisableTG()
+
+	self:UnregisterEvent("QUEST_LOG_UPDATE")
+	self:UnregisterEvent("PLAYER_LEVEL_UP")
+	self:UnregisterEvent("QUEST_AUTOCOMPLETE")
+	self:UnregisterEvent("CHAT_MSG_SYSTEM")
+	self:UnregisterEvent("TAXIMAP_OPENED")
+	self:UnregisterEvent("UI_INFO_MESSAGE")
+	
+	enable = nil
+end
+
+function f:ADDON_LOADED(event, addon)
+	if addon ~= "TourGuide_Recorder" then return end
+
+	_G.TourGuide_RecorderDB = _G.TourGuide_RecorderDB or ""
+
+	if enable then
+		self:EnableTG()
+	end
 
 	self:UnregisterEvent("ADDON_LOADED")
 	self.ADDON_LOADED = nil
@@ -96,7 +117,9 @@ end
 
 
 local function Save(val)
-	_G.TourGuide_RecorderDB = _G.TourGuide_RecorderDB..val
+	if enable then
+		_G.TourGuide_RecorderDB = _G.TourGuide_RecorderDB..val
+	end
 end
 
 local function coords()
@@ -309,7 +332,11 @@ function SlashCmdList.TGR(msg)
 		ShowUIPanel(panel)
 	elseif msg:trim() == "clear" then
 		StaticPopup_Show("TOURGUIDE_RECORDER_RESET")
-	else
+	elseif msg:trim() == "enable" then
+		f:EnableTG()
+	elseif msg:trim() == "disable" then
+		f:DisableTG()
+	else 
 		Save("\n; Usernote: " .. (msg or "No note") .. "|")
 		SaveCoords()
 	end
