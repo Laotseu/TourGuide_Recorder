@@ -88,6 +88,7 @@ function f:EnableTG()
 	self:RegisterEvent("UI_INFO_MESSAGE")
 	
 	enable = true
+	print(myname .. " is now enabled")
 end
 
 function f:DisableTG()
@@ -100,6 +101,7 @@ function f:DisableTG()
 	self:UnregisterEvent("UI_INFO_MESSAGE")
 	
 	enable = nil
+	print(myname .. " is now disabled")
 end
 
 function f:ADDON_LOADED(event, addon)
@@ -266,7 +268,7 @@ end
 
 local used = {}
 hooksecurefunc("UseContainerItem", function(bag, slot, ...)
-	if MerchantFrame:IsVisible() then return end
+	if MerchantFrame:IsVisible() or not enable then return end
 	local link = GetContainerItemLink(bag, slot)
 	if link and not used[link] and (IsUsableItem(link) or IsConsumableItem(link)) then
 		used[link] = true
@@ -276,7 +278,7 @@ hooksecurefunc("UseContainerItem", function(bag, slot, ...)
 end)
 hooksecurefunc("UseQuestLogSpecialItem", function(questIndex)
 	local link = GetQuestLogSpecialItemInfo(questIndex)
-	if link then
+	if link and enable then
 		used[link] = true
 		Save(("\n; |U|%s|"):format(itemids[link]))
 		SaveCoords(link)
@@ -336,6 +338,14 @@ function SlashCmdList.TGR(msg)
 		f:EnableTG()
 	elseif msg:trim() == "disable" then
 		f:DisableTG()
+	elseif msg:trim() == "help" then
+		print(myname .. " commands:")
+		print("  /tgr clear : clear the recorded log")
+		print("  /tgr enable : eneable quest and event logging")
+		print("  /tgr disable : eneable quest and event logging")
+		print("  /tgr help : get help")
+		print("  /tgr [note] : create a manual entry with the current coordinates")
+		print("  /tgr : open or close the window")
 	else 
 		Save("\n; Usernote: " .. (msg or "No note") .. "|")
 		SaveCoords()
