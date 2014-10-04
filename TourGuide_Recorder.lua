@@ -51,7 +51,28 @@ local MerchantFrame					= _G.MerchantFrame
 local function err(msg,...) geterrorhandler()(msg:format(tostringall(...)) .. " - " .. time()) end
 
 local accepted, currentcompletes, oldcompletes, currentquests, oldquests, currentboards, oldboards, titles, firstscan, abandoning, db = {}, {}, {}, {}, {}, {}, {}, {}, true
-local enable = nil
+local enable = true
+
+-- For print
+local default_channel = nil
+local function setDefaultChanelForPrint()
+	default_channel = nil
+	for i=1, _G.NUM_CHAT_WINDOWS do
+		local name = _G.GetChatWindowInfo(i)
+		if name and name:lower() == 'output' then
+			default_channel = i
+		end
+	end
+end
+
+local function print(message, ...)
+	if default_channel then
+		_G["ChatFrame"..default_channel]:AddMessage(("|cff00dbba"..myname.."|r: "..message):format(...));
+	else
+		_G.SELECTED_CHAT_FRAME:AddMessage(("|cff00dbba"..myname.."|r: "..message):format(...))
+	end
+end
+
 
 local qids = setmetatable({}, {
 	__index = function(t,i)
@@ -79,6 +100,8 @@ f:SetScript("OnEvent", function(self, event, ...) if self[event] then return sel
 f:RegisterEvent("ADDON_LOADED")
 
 function f:EnableTG()
+
+	setDefaultChanelForPrint()
 	
 	self:RegisterEvent("QUEST_LOG_UPDATE")
 	self:RegisterEvent("PLAYER_LEVEL_UP")
