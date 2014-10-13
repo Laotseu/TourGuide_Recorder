@@ -19,6 +19,8 @@ local AbandonQuest					= _G.AbandonQuest
 local CreateFrame						= _G.CreateFrame
 local GetAutoQuestPopUp				= _G.GetAutoQuestPopUp
 local GetContainerItemLink			= _G.GetContainerItemLink
+local GetCurrentMapAreaID 			= _G.GetCurrentMapAreaID
+local GetCurrentMapDungeonLevel 	= _G.GetCurrentMapDungeonLevel
 local GetNumAutoQuestPopUps		= _G.GetNumAutoQuestPopUps
 local GetNumQuestLeaderBoards		= _G.GetNumQuestLeaderBoards
 local GetNumQuestLogEntries		= _G.GetNumQuestLogEntries
@@ -152,10 +154,13 @@ local function coords()
 	return x * 100, y * 100
 end
 
-local function SaveCoords(note)
+local function SaveCoords(note, questobjectivetext)
 	local x, y = GetPlayerMapPosition("player")
 	note = note and ("N|%s|"):format(note) or ""
-	Save(("M|%.1f,%.1f|Z|%s|%s; %s"):format(x * 100, y * 100, GetZoneText(), note, GetSubZoneText()))
+	questobjectivetext = questobjectivetext and ("|QO|%S|"):format(questobjectivetext) or ""
+	local zoneid, floor = GetCurrentMapAreaID(), GetCurrentMapDungeonLevel()
+	local zonenumber = ("|Z|%s%s%s"):format(zoneid, floor and ";" or "", floor or "")
+	Save(("M|%.1f,%.1f|Z|%s|%s; %s %s%s"):format(x * 100, y * 100, GetZoneText(), note, GetSubZoneText(), zonenumber, questobjectivetext))
 end
 
 function f:PLAYER_LEVEL_UP(event, level)
@@ -202,9 +207,10 @@ function f:QUEST_LOG_UPDATE()
 	end
 
 	for qidboard,text in pairs(currentboards) do
-		local qid = tonumber(qidboard:match("(%d+)[.]"))
+		local qid, oid = qidboard:match("(%d+)[.](%d+)")
+		qid, oid = tonumber(qid), tonumber(oid)
 		if not oldboards[qidboard] and accepted[qid] then
-			Save(("\nC %s |QID|%s|QO|%s|"):format(titles[qid], qid, text))
+			Save(("\nC %s |QID|%s|QO|%s|"):format(titles[qid], qid, oid))
 			SaveCoords()
 		end
 	end
