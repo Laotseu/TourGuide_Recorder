@@ -159,7 +159,7 @@ local function SaveCoords(note, questobjectivetext)
 	note = note and ("N|%s|"):format(note) or ""
 	questobjectivetext = questobjectivetext and ("|QO|%S|"):format(questobjectivetext) or ""
 	local zoneid, floor = GetCurrentMapAreaID(), GetCurrentMapDungeonLevel()
-	local zonenumber = ("|Z|%s%s%s"):format(zoneid, floor and ";" or "", floor or "")
+	local zonenumber = ("|Z|%s%s%s|"):format(zoneid, floor and ";" or "", floor or "")
 	Save(("M|%.1f,%.1f|Z|%s|%s; %s %s%s"):format(x * 100, y * 100, GetZoneText(), note, GetSubZoneText(), zonenumber, questobjectivetext))
 end
 
