@@ -2,18 +2,20 @@ local myname, ns = ...
 
 local _G 								= getfenv(0)
 
+local floor								= _G.floor
 local geterrorhandler				= _G.geterrorhandler
 local hooksecurefunc					= _G.hooksecurefunc
+local max								= _G.max
+local min								= _G.min
 local next								= _G.next
 local pairs								= _G.pairs
 local setmetatable					= _G.setmetatable
+local strsplit 						= _G.strsplit
 local time								= _G.time
 local tonumber							= _G.tonumber
 local tostring							= _G.tostring
 local tostringall						= _G.tostringall
-local min								= _G.min
-local max								= _G.max
-local floor								= _G.floor
+local wipe								= _G.wipe
 
 local AbandonQuest					= _G.AbandonQuest
 local CreateFrame						= _G.CreateFrame
@@ -54,20 +56,32 @@ local function err(msg,...) geterrorhandler()(msg:format(tostringall(...)) .. " 
 
 local accepted, currentcompletes, oldcompletes, currentquests, oldquests, currentboards, oldboards, titles, firstscan, abandoning, db = {}, {}, {}, {}, {}, {}, {}, {}, true
 local enable = true
+local MAX_LINES = 200
 
 -- For print
+local myfullname = _G.GetAddOnMetadata(myname, "Title")
 local default_channel = nil
 local function setDefaultChanelForPrint()
 	default_channel = nil
 	for i=1, _G.NUM_CHAT_WINDOWS do
-		local name = _G.GetChatWindowInfo(i)
-		if name and name:lower() == 'output' then
+		local name, _, _, _, _, shown = _G.GetChatWindowInfo(i)
+		if not default_channel and name and shown and (name:lower() == myname:lower() or name:lower() == myfullname:lower()) then
 			default_channel = i
+		end
+	end
+	if not default_channel then
+		for i=1, _G.NUM_CHAT_WINDOWS do
+			local name, _, _, _, _, shown = _G.GetChatWindowInfo(i)
+			if not default_channel and name and shown and name:lower() == 'output' then
+				default_channel = i
+			end
 		end
 	end
 end
 
+
 local function print(message, ...)
+	-- err("default_channel = %s, message = %s",default_channel,message )
 	if default_channel then
 		_G["ChatFrame"..default_channel]:AddMessage(("|cff00dbba"..myname.."|r: "..message):format(...));
 	else
@@ -101,34 +115,6 @@ local f = CreateFrame("frame")
 f:SetScript("OnEvent", function(self, event, ...) if self[event] then return self[event](self, event, ...) end end)
 f:RegisterEvent("ADDON_LOADED")
 
-function f:EnableTG()
-
-	setDefaultChanelForPrint()
-	
-	self:RegisterEvent("QUEST_LOG_UPDATE")
-	self:RegisterEvent("PLAYER_LEVEL_UP")
-	self:RegisterEvent("QUEST_AUTOCOMPLETE")
-	self:RegisterEvent("CHAT_MSG_SYSTEM")
-	self:RegisterEvent("TAXIMAP_OPENED")
-	self:RegisterEvent("UI_INFO_MESSAGE")
-	
-	enable = true
-	print(myname .. " is now enabled")
-end
-
-function f:DisableTG()
-
-	self:UnregisterEvent("QUEST_LOG_UPDATE")
-	self:UnregisterEvent("PLAYER_LEVEL_UP")
-	self:UnregisterEvent("QUEST_AUTOCOMPLETE")
-	self:UnregisterEvent("CHAT_MSG_SYSTEM")
-	self:UnregisterEvent("TAXIMAP_OPENED")
-	self:UnregisterEvent("UI_INFO_MESSAGE")
-	
-	enable = nil
-	print(myname .. " is now disabled")
-end
-
 function f:ADDON_LOADED(event, addon)
 	if addon ~= "TourGuide_Recorder" then return end
 
@@ -161,6 +147,45 @@ local function SaveCoords(note, questobjectivetext)
 	local zoneid, floor = GetCurrentMapAreaID(), GetCurrentMapDungeonLevel()
 	local zonenumber = ("|Z|%s%s%s|"):format(zoneid, floor and ";" or "", floor or "")
 	Save(("M|%.1f,%.1f|Z|%s|%s; %s %s%s"):format(x * 100, y * 100, GetZoneText(), note, GetSubZoneText(), zonenumber, questobjectivetext))
+end
+
+local lines = {}
+function f:EnableTG()
+
+	setDefaultChanelForPrint()
+
+	-- Truncate the log to MAX_LINES.
+	lines = { strsplit('\n', _G.TourGuide_RecorderDB) }
+	if #lines > MAX_LINES then
+		_G.TourGuide_RecorderDB = ""
+		for i = #lines - MAX_LINES + 1, #lines do
+			Save('\n' .. lines[i])
+		end
+	end
+	wipe(lines)
+	
+	self:RegisterEvent("QUEST_LOG_UPDATE")
+	self:RegisterEvent("PLAYER_LEVEL_UP")
+	self:RegisterEvent("QUEST_AUTOCOMPLETE")
+	self:RegisterEvent("CHAT_MSG_SYSTEM")
+	self:RegisterEvent("TAXIMAP_OPENED")
+	self:RegisterEvent("UI_INFO_MESSAGE")
+	
+	enable = true
+	print(myname .. " is now enabled")
+end
+
+function f:DisableTG()
+
+	self:UnregisterEvent("QUEST_LOG_UPDATE")
+	self:UnregisterEvent("PLAYER_LEVEL_UP")
+	self:UnregisterEvent("QUEST_AUTOCOMPLETE")
+	self:UnregisterEvent("CHAT_MSG_SYSTEM")
+	self:UnregisterEvent("TAXIMAP_OPENED")
+	self:UnregisterEvent("UI_INFO_MESSAGE")
+	
+	enable = nil
+	print(myname .. " is now disabled")
 end
 
 function f:PLAYER_LEVEL_UP(event, level)
@@ -278,7 +303,7 @@ end
 
 -- Discovered new flight master
 local err_count = 1
-function f:UI_INFO_MESSAGE(event, msg)
+function f:UI_INFO_MESSAGE(event, arg1, msg)
 --if err_count <= 10 then  err("msg = %s",msg); err_count = err_count +1 end
 	if msg == _G.ERR_NEWTAXIPATH then
 		--err("msg = %s",msg)
