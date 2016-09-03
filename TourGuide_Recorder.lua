@@ -210,9 +210,9 @@ function f:QUEST_LOG_UPDATE()
 		local qid = link and qids[link]
 		if qid then
 			currentquests[qid] = true
-			local title, _, _, _, _, _, complete = GetQuestLogTitle(i)
+			local title, _, _, _, _, complete = GetQuestLogTitle(i)
 			titles[qid] = title
-			currentcompletes[qid] = complete == 1 and title or nil
+			currentcompletes[qid] = complete and title or nil
 
 			if GetNumQuestLeaderBoards(i) > 1 then
 				for j=1,GetNumQuestLeaderBoards(i) do
