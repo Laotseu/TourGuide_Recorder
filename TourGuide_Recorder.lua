@@ -41,6 +41,7 @@ local ShowUIPanel						= _G.ShowUIPanel
 local SlashCmdList					= _G.SlashCmdList
 local StaticPopupDialogs			= _G.StaticPopupDialogs
 local StaticPopup_Show				= _G.StaticPopup_Show
+local UnitGUID 						= _G.UnitGUID
 local UnitName							= _G.UnitName
 local UnitOnTaxi						= _G.UnitOnTaxi
 
@@ -54,9 +55,10 @@ local MerchantFrame					= _G.MerchantFrame
 
 local function err(msg,...) geterrorhandler()(msg:format(tostringall(...)) .. " - " .. time()) end
 
-local accepted, currentcompletes, oldcompletes, currentquests, oldquests, currentboards, oldboards, titles, firstscan, abandoning, db = {}, {}, {}, {}, {}, {}, {}, {}, true
+local accepted, currentcompletes, oldcompletes, currentquests, oldquests, currentboards, oldboards, titles = {}, {}, {}, {}, {}, {}, {}, {}
+local firstscan, abandoning, db = true
 local enable = true
-local MAX_LINES = 200
+local MAX_LINES = 400
 
 -- For print
 local myfullname = _G.GetAddOnMetadata(myname, "Title")
@@ -149,6 +151,13 @@ local function SaveCoords(note, questobjectivetext)
 	Save(("M|%.1f,%.1f|Z|%s|%s; %s %s%s"):format(x * 100, y * 100, GetZoneText(), note, GetSubZoneText(), zonenumber, questobjectivetext))
 end
 
+local function SaveTarget()
+	local name, guid, msg = UnitName("target"), UnitGUID("target"), ""
+	if name then
+		Save(("T|%s|N|GUID = %s|"):format(name, guid or "nil"))
+	end
+end
+
 local lines = {}
 function f:EnableTG()
 
@@ -168,6 +177,9 @@ function f:EnableTG()
 	self:RegisterEvent("PLAYER_LEVEL_UP")
 	self:RegisterEvent("QUEST_AUTOCOMPLETE")
 	self:RegisterEvent("CHAT_MSG_SYSTEM")
+	-- self:RegisterEvent("CHAT_MSG_OPENING")
+	-- self:RegisterEvent("QUEST_ACCEPTED")
+	-- self:RegisterEvent("QUEST_COMPLETE")
 	self:RegisterEvent("TAXIMAP_OPENED")
 	self:RegisterEvent("UI_INFO_MESSAGE")
 	
@@ -181,6 +193,9 @@ function f:DisableTG()
 	self:UnregisterEvent("PLAYER_LEVEL_UP")
 	self:UnregisterEvent("QUEST_AUTOCOMPLETE")
 	self:UnregisterEvent("CHAT_MSG_SYSTEM")
+	-- self:UnregisterEvent("CHAT_MSG_OPENING")
+	-- self:UnregisterEvent("QUEST_ACCEPTED")
+	-- self:UnregisterEvent("QUEST_COMPLETE")
 	self:UnregisterEvent("TAXIMAP_OPENED")
 	self:UnregisterEvent("UI_INFO_MESSAGE")
 	
@@ -192,10 +207,30 @@ function f:PLAYER_LEVEL_UP(event, level)
 	Save("\n; Level up! ".. level)
 end
 
+_G.eric_moretrace = nil
 local lastautocomplete
 function f:QUEST_AUTOCOMPLETE(event, qid)
 	lastautocomplete = qid
+	if _G.eric_moretrace then
+		Save(("\n; QUEST_AUTOCOMPLETE [%s]"):format(qid or "nil"))
+		SaveCoords()
+	end
 end
+
+function f:QUEST_ACCEPTED(event, questIndex, qid)
+	if _G.eric_moretrace then
+		Save(("\n; QUEST_ACCEPTED [%s, %s]"):format(questIndex or "nil", qid or "nil"))
+		SaveCoords()
+	end
+end
+
+function f:QUEST_COMPLETE(event, questIndex, qid)
+	if _G.eric_moretrace then
+		Save(("\n; QUEST_COMPLETE [%s, %s]"):format(questIndex or "nil", qid or "nil"))
+		SaveCoords()
+	end
+end
+
 
 function f:QUEST_LOG_UPDATE()
 	currentquests, oldquests = oldquests, currentquests
@@ -206,11 +241,11 @@ function f:QUEST_LOG_UPDATE()
 	for i in pairs(currentcompletes) do currentcompletes[i] = nil end
 
 	for i=1,GetNumQuestLogEntries() do
-		local link = GetQuestLink(i)
-		local qid = link and qids[link]
+		-- local link = GetQuestLink(i)
+		-- local qid = link and qids[link]
+		local title, _, _, _, _, complete, frequency, qid = GetQuestLogTitle(i)
 		if qid then
 			currentquests[qid] = true
-			local title, _, _, _, _, complete = GetQuestLogTitle(i)
 			titles[qid] = title
 			currentcompletes[qid] = complete and title or nil
 
@@ -299,6 +334,15 @@ function f:CHAT_MSG_SYSTEM(event, msg, ...)
 			SaveCoords(note)
 		end
 	end
+	if _G.eric_moretrace then
+		Save(("\n; CHAT_MSG_SYSTEM [%s]"):format(msg or "nil"))
+		SaveCoords()
+	end
+end
+
+function f:CHAT_MSG_OPENING( event, msg, ... )
+	Save(("\n; CHAT_MSG_OPENING [%s]"):format(msg or "nil"))
+	SaveCoords("Auto-accept")
 end
 
 -- Discovered new flight master
@@ -310,6 +354,9 @@ function f:UI_INFO_MESSAGE(event, arg1, msg)
 		local note = UnitName("target") and ("Talk to %s"):format(UnitName("target")) or nil
 		Save(("\nf %s |"):format(GetSubZoneText():trim()))
 		SaveCoords(note)
+	elseif _G.eric_moretrace then
+		Save(("\n; UI_INFO_MESSAGE [%s][%s]"):format(arg1 or "nil", msg or "nil"))
+		SaveCoords()
 	end
 end
 
@@ -402,6 +449,7 @@ function SlashCmdList.TGR(msg)
 		print("  /tgr : open or close the window")
 	else 
 		Save("\n; Usernote: " .. (msg or "No note") .. "|")
+		SaveTarget()
 		SaveCoords()
 	end
 end
