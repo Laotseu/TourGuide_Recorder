@@ -144,6 +144,8 @@ end
 
 local function SaveCoords(note, questobjectivetext)
 	local x, y = GetPlayerMapPosition("player")
+	x = x or 0
+	y = y or 0
 	note = note and ("N|%s|"):format(note) or ""
 	questobjectivetext = questobjectivetext and ("|QO|%S|"):format(questobjectivetext) or ""
 	local zoneid, floor = GetCurrentMapAreaID(), GetCurrentMapDungeonLevel()
